@@ -1,0 +1,1046 @@
+﻿        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            filter: brightness(1) contrast(1);
+            transition: filter 0.1s;
+        }
+
+        /* ================== UI 元素 (初始隐藏) ================== */
+        .ui-element {
+            opacity: 0 !important; 
+            transition: opacity 2s ease;
+            pointer-events: none;
+        }
+        
+        .ui-element.fade-in {
+            opacity: 1 !important;
+            pointer-events: auto;
+        }
+
+        #intro-hint {
+            position: fixed;
+            bottom: 40px;
+            left: 40px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            letter-spacing: 4px;
+            font-weight: 300;
+            z-index: 20000;
+            pointer-events: none;
+            animation: blink-anim 3s infinite ease-in-out;
+            text-transform: uppercase;
+        }
+
+        @keyframes blink-anim {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1.0; }
+        }
+
+        #top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            z-index: 10;
+            display: flex;
+            justify-content: flex-end;
+            padding: 30px 40px;
+            box-sizing: border-box;
+            pointer-events: none; /* Let clicks pass through bar area */
+        }
+
+        #user-icon-btn {
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: auto; /* Ensure icon is clickable */
+        }
+
+        #user-icon-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        #user-icon-btn svg {
+            width: 100%;
+            height: 100%;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* --- 这里控制左下角整体（图片+文字）的位置 --- */
+        #ui-layer {
+            position: absolute;
+            bottom: 40px; 
+            left: 40px;   
+            z-index: 2;
+            color: rgba(255, 255, 255, 1.0);
+            pointer-events: none;
+            mix-blend-mode: exclusion;
+        }
+
+        /* --- 左下角标题图片样式 --- */
+        #ui-title-img {
+            width: 420px; 
+            display: block;
+            margin-bottom: 15px; 
+            opacity: 0.95;
+            position: relative; 
+            left: -100px;  
+            top: 120px;   
+        }
+
+        #album-label {
+            position: absolute;
+            top: 73%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            z-index: 10;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            opacity: 0; 
+            transition: opacity 0.5s ease;
+            pointer-events: none; /* Container ignores events */
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+        }
+        
+        #album-title-text {
+            display: block;
+        }
+
+        /* --- 【参数调整区：放大后下方文字样式】 --- */
+        #album-artist-text {
+            display: block;
+            margin-top: 8px; /* 第一行与第二行的间距 */
+            font-weight: normal;
+        }
+
+        .artist-name {
+            font-size: 14px;      /* 歌手名字体大小 */
+            opacity: 0.9;         /* 歌手名透明度 */
+            letter-spacing: 2px;
+        }
+
+        .album-year {
+            font-size: 12px;      /* 年份字体大小 */
+            opacity: 0.6;         /* 年份透明度 */
+            margin-left: 15px;    /* 调整歌手名与年份之间的距离 */
+            letter-spacing: 1px;
+        }
+        /* ------------------------------------- */
+
+        #resonance-meter {
+            display: block;
+            margin-top: 8px;
+            font-size: 10px;
+            color: #00ffcc;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+        
+        /* ================================================================
+           【参数修改区：背景圆角矩形 (Wrapper)】 
+           这是底部的半透明背景块，与进度条功能解耦。
+           ================================================================
+        */
+        #main-progress-wrapper {
+            /* 1. 位置调整 (上 右 下 左) */
+            margin: 20px auto 0 auto; 
+
+            /* 2. 尺寸调整 */
+            width: 340px;  
+            height: 40px;  
+
+            /* 3. 圆角与背景 */
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(5px);
+
+            /* --- 交互与显示状态 --- */
+            display: flex; /* 保持 flex 布局以确保内容居中 */
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto; /* 关键：阻挡点击穿透 */
+            cursor: default;      
+            
+            /* 状态控制：使用 visibility 和 opacity 实现淡入淡出 */
+            visibility: hidden; 
+            opacity: 0; 
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        }
+        #main-progress-wrapper:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        #main-progress-wrapper.active {
+            visibility: visible;
+            opacity: 1; /* 播放后淡入 */
+        }
+
+        /* ================================================================
+           【参数修改区：进度条本体 (Container)】 
+           这是实际的进度条线条区域，位于背景矩形内部。
+           ================================================================
+        */
+        #progress-container {
+            /* 1. 尺寸 (宽度应小于 Wrapper 宽度) */
+            width: 280px;
+            height: 20px; /* 点击热区高度，建议保持以便抓取 */
+
+            /* --- 交互属性 --- */
+            position: relative;
+            cursor: pointer;
+            pointer-events: auto; /* 允许拖动 */
+            user-select: none;
+            touch-action: none;
+            /* Z-index 确保在 Wrapper 之上 */
+            z-index: 101; 
+        }
+
+        #progress-container .progress-knob {
+            pointer-events: auto;
+            cursor: grab;
+        }
+
+        #progress-container:active .progress-knob {
+            cursor: grabbing;
+        }
+
+        /* 进度条背景线 (浅灰色) */
+        .progress-bg {
+            position: absolute;
+            top: 9px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 1px;
+            pointer-events: none;
+        }
+
+        /* 进度条填充线 (白色，加粗) */
+        .progress-fill {
+            position: absolute;
+            top: 8.5px;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background-color: #fff;
+            border-radius: 1.5px;
+            pointer-events: none;
+        }
+
+        /* 小圆点 */
+        .progress-knob {
+            position: absolute;
+            top: 6px;
+            left: 0%;
+            width: 8px;
+            height: 8px;
+            background-color: #fff;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+
+        /* 当前播放时间 */
+        .progress-current-time,
+        .progress-tooltip {
+            position: absolute;
+            top: -25px; 
+            left: 0%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2px 6px;
+            border-radius: 3px;
+            opacity: 1;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            letter-spacing: 1px;
+        }
+
+        #progress-duration {
+            min-width: 34px;
+            margin-left: 12px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.75);
+            letter-spacing: 1px;
+            text-align: left;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* --- 【参数调整】左上角按钮 (Reset / PlayPause) --- */
+        .control-btn {
+            position: absolute;
+            /* 外圈圆大小 */
+            width: 44px; 
+            height: 44px; 
+            z-index: 10;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s, transform 0.5s ease, background 0.3s;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(4px);
+            padding: 0;
+            pointer-events: auto;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .control-btn:hover {
+            opacity: 1.0;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-btn svg {
+            /* 线条图标大小 */
+            width: 28px; 
+            height: 28px; 
+            
+            fill: none;
+            stroke: #fff;
+            
+            /* 线条粗细 */
+            stroke-width: 1.8; 
+            
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        #reset-btn { top: 40px; left: 40px; }
+        #reset-btn:hover { transform: rotate(-90deg); }
+        #play-pause-btn { top: 110px; left: 40px; }
+        #play-pause-btn:hover { transform: scale(1.1); }
+
+        /* =================== 按钮位置修改区 =================== */
+        
+        #track-play-btn {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(220px, -30px); 
+            z-index: 20; 
+            width: 30px; height: 30px; 
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none; cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            align-items: center; justify-content: center;
+            pointer-events: auto;
+        }
+        #track-play-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(220px, -30px) scale(1.2);
+        }
+        
+        #resonate-btn {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(220px, 20px);
+            z-index: 20; 
+            width: 30px; height: 30px; 
+            border: 2px solid rgba(0, 255, 204, 0.8);
+            border-radius: 50%;
+            background: rgba(0, 50, 40, 0.6);
+            display: none; cursor: pointer;
+            transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
+            align-items: center; justify-content: center;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+            pointer-events: auto;
+        }
+        #resonate-btn:hover {
+            transform: translate(220px, 20px) scale(1.2);
+            background: rgba(0, 255, 204, 0.2);
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.6);
+        }
+        #resonate-btn:active { transform: translate(220px, 20px) scale(0.95); }
+        /* ==================================================== */
+
+        .action-icon { width: 14px; height: 14px; fill: #00ffcc; stroke: none; } 
+        #track-play-btn svg {
+            width: 14px; height: 14px; fill: none; stroke: #fff; 
+            stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+        }
+        #track-icon-play path, #track-icon-pause path { fill: white; stroke: none; }
+
+        h1 { font-weight: 300; font-size: 24px; letter-spacing: 6px; margin: 0 0 10px 0; text-transform: uppercase; text-shadow: 0 0 15px rgba(255,255,255,0.6); }
+        p { font-size: 11px; color: rgba(255, 255, 255, 0.9); margin: 0; letter-spacing: 2px; text-transform: uppercase; }
+        .instruction { margin-top: 24px; font-size: 10px; opacity: 0.9; border-left: 2px solid rgba(255,255,255,0.9); padding-left: 12px; line-height: 1.8; letter-spacing: 1px; font-weight: bold; }
+        
+        #login-hint {
+            margin-top: 15px; 
+            font-size: 11px; 
+            color: #fff; 
+            letter-spacing: 2px; 
+            text-transform: uppercase;
+            font-weight: normal;
+            animation: blink-anim 3s infinite ease-in-out;
+            opacity: 0.9;
+        }
+
+        /* --- 迷你播放器 (Mini Player) --- */
+        #mini-player {
+            position: fixed;
+            top: 40%;
+            left: -375px; /* Initially hidden */
+            transform: translateY(-50%);
+            transform-origin: left center;
+            width: 300px;
+            min-height: 390px;
+            padding: 18px;
+            background: rgba(0, 0, 0, 0.92);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            backdrop-filter: blur(14px);
+            z-index: 50;
+            transition: left 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* 左对齐 */
+            pointer-events: auto;
+            box-shadow: 0 22px 60px rgba(0,0,0,0.72);
+            scale: 0.8;
+        }
+        #mini-player.active {
+            left: 20px;
+        }
+        /* 折叠状态：隐藏主体，只露右侧边栏 */
+        #mini-player.collapsed {
+            left: -270px;
+        }
+        
+        #mini-player img {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.48);
+            background-color: #222;
+        }
+        
+        #mini-player .info {
+            width: 100%;
+            margin-bottom: 26px;
+            text-align: left;
+        }
+        #mini-player .title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.25;
+        }
+        #mini-player .artist {
+            color: rgba(255,255,255,0.86);
+            font-size: 15px;
+            letter-spacing: 2px;
+            margin-top: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 底部控制行：进度条 + 播放按钮 */
+        .mini-bottom-row {
+            display: flex;
+            align-items: flex-end;
+            width: 100%;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        /* Mini Progress Bar */
+        .mini-progress-stack {
+            flex-grow: 1;
+            min-width: 0;
+            position: relative;
+            padding-top: 18px;
+            padding-bottom: 18px;
+        }
+        .mini-progress {
+            height: 18px; /* 增加热区高度方便拖拽 */
+            margin: 0;
+            opacity: 0.9;
+            cursor: pointer;
+            position: relative;
+            pointer-events: auto;
+        }
+        /* 视觉上线条居中 */
+        .mini-progress .progress-bg { top: 8px; height: 3px; background: rgba(255,255,255,0.55); pointer-events: none; }
+        .mini-progress .progress-fill { top: 8px; height: 3px; background: #fff; pointer-events: none; }
+        .mini-progress .progress-knob { top: 4px; width: 10px; height: 10px; pointer-events: none; box-shadow: 0 0 8px rgba(255,255,255,0.7); }
+        .mini-progress .progress-tooltip,
+        .mini-progress .progress-current-time { display: none; } 
+
+        .mini-time-row {
+            position: absolute;
+            inset: 0;
+            color: rgba(255,255,255,0.9);
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            pointer-events: none;
+        }
+        #mini-current-time {
+            position: absolute;
+            top: 0;
+            left: 0%;
+            transform: translateX(-50%);
+        }
+        #mini-duration {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        /* Mini Play/Pause Button */
+        #mini-pause-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.66);
+            transition: all 0.2s;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+        #mini-pause-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        #mini-pause-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: #fff;
+            stroke: none;
+        }
+
+        /* --- 右侧悬浮侧边栏 (关闭 + 折叠) --- */
+        .mini-sidebar {
+            position: absolute;
+            right: -34px; /* Attach to right edge outside */
+            top: 16px;
+            width: 34px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px; /* Space between buttons */
+            z-index: 51;
+        }
+
+        /* 关闭按钮 (右上角对齐) - 移除红色描边 */
+        #mini-close-btn {
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.88);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-left: none;
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+            transition: all 0.2s;
+            position: static;
+        }
+        /* 折叠后隐藏关闭按钮 */
+        #mini-player.collapsed #mini-close-btn {
+            display: none;
+        }
+        #mini-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+        }
+        #mini-close-btn svg {
+            width: 19px;
+            height: 19px;
+            stroke: #fff;
+            stroke-width: 2.4;
+            fill: none;
+            stroke-linecap: round;
+        }
+
+        /* 侧边折叠箭头 (正下方) */
+        #mini-toggle-btn {
+            width: 34px;
+            height: 42px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.88);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-left: none;
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+            position: static;
+        }
+        /* 钝角三角形绘制 */
+        #mini-toggle-arrow {
+            width: 0; 
+            height: 0; 
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            /* 默认状态：箭头向左 (收起) */
+            border-right: 11px solid rgba(255, 255, 255, 0.7); 
+            transition: transform 0.3s;
+        }
+        /* 折叠状态下，箭头翻转 (展开) */
+        #mini-player.collapsed #mini-toggle-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* --- 弹窗样式调整 --- */
+        #overlay-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: transparent; 
+            z-index: 1000; 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            color: #fff;
+            pointer-events: auto; 
+        }
+        #overlay-container.active { 
+            display: flex; 
+        }
+        
+        .close-overlay { display: none; }
+        
+        /* 模态框样式 */
+        .modal-box {
+            width: 380px; padding: 40px; background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8); text-align: center; display: none;
+            pointer-events: auto; 
+            position: relative;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: slideIn 0.3s forwards;
+        }
+        .modal-box.active { display: block; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideDownOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(50px); }
+        }
+        
+        .modal-box.closing {
+            animation: slideDownOut 0.3s forwards !important;
+        }
+
+        .modal-title { font-size: 20px; font-weight: 300; margin-bottom: 25px; letter-spacing: 3px; text-transform: uppercase; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 10px; color: #888; margin-bottom: 5px; letter-spacing: 1px; text-transform: uppercase; }
+        .input-field {
+            width: 100%; background: transparent; border: none; border-bottom: 1px solid #444;
+            color: #fff; font-size: 16px; padding: 10px 0; font-family: 'Courier New', monospace;
+            outline: none; transition: border-color 0.3s; box-sizing: border-box;
+        }
+        .input-field:focus { border-bottom-color: #fff; }
+        .action-btn {
+            width: 100%; padding: 12px; margin-top: 10px; background: #fff; color: #000;
+            border: none; border-radius: 4px; font-size: 12px; font-weight: bold; letter-spacing: 2px;
+            cursor: pointer; text-transform: uppercase; transition: background 0.3s;
+        }
+        .action-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .action-btn:hover:not(:disabled) { background: #ccc; }
+        .switch-mode { margin-top: 20px; font-size: 12px; color: #666; cursor: pointer; text-decoration: underline; }
+        .switch-mode:hover { color: #fff; }
+        .cheat-btn {
+            position: absolute;
+            right: 14px;
+            bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.55);
+            font-size: 11px;
+            letter-spacing: 1px;
+            padding: 5px 8px;
+            cursor: pointer;
+            text-transform: lowercase;
+        }
+        .cheat-btn:hover {
+            color: #fff;
+            border-color: rgba(255,255,255,0.75);
+            background: rgba(255,255,255,0.14);
+        }
+        .profile-info { text-align: left; margin-bottom: 20px; }
+        .profile-info div { margin-bottom: 8px; font-size: 14px; letter-spacing: 1px; }
+        .profile-info span { color: #888; font-size: 12px; }
+        
+        .section-title { text-align: left; font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        
+        /* 颜色选择器 */
+        .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
+        .color-swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s, box-shadow 0.2s; }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.selected { border-color: #fff; box-shadow: 0 0 10px #fff; transform: scale(1.1); }
+
+        .shape-grid { display: grid; grid-template-columns: repeat(5, 34px); gap: 8px; margin: 15px 0; }
+        .shape-option {
+            width: 34px;
+            height: 34px;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            font-size: 18px;
+            line-height: 1;
+        }
+        .shape-option:hover { color: #fff; border-color: rgba(255,255,255,0.65); }
+        .shape-option.selected {
+            color: #fff;
+            border-color: #fff;
+            background: rgba(255,255,255,0.14);
+            box-shadow: 0 0 12px rgba(255,255,255,0.45);
+        }
+        
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -5px; 
+            box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+
+        /* 规则文本 */
+        .rules-text { font-size: 10px; color: #aaa; text-align: left; margin: 15px 0; border-left: 2px solid #555; padding-left: 10px; line-height: 1.5; }
+        
+        /* 列表样式 */
+        .resonance-list { max-height: 150px; overflow-y: auto; text-align: left; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; }
+        .resonance-item { font-size: 11px; color: #aaa; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .resonance-item .info { flex: 1; }
+        .resonance-item strong { color: #fff; font-size: 13px; display: block; margin-bottom: 2px; }
+        .resonance-item span { font-size: 10px; color: #888; }
+        .resonance-controls { display: flex; gap: 5px; align-items: center; }
+        .ctrl-btn { width: 20px; height: 20px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; display:flex; align-items:center; justify-content:center; transition: background 0.2s; }
+        .ctrl-btn:hover { background: #555; }
+        .del-btn { color: #ff4444; background: transparent; border: 1px solid #ff4444; margin-left: 5px; width: auto; padding: 0 5px; }
+        .del-btn:hover { background: #ff4444; color: #fff; }
+        
+        .resonance-list::-webkit-scrollbar { width: 4px; }
+        .resonance-list::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+        /* ================= 老电视故障特效容器 ================= */
+        #glitch-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5000;
+            pointer-events: none;
+            display: none;
+        }
+        
+        body.glitch-active #canvas-container {
+            animation: rgb-shake 0.1s infinite;
+            filter: contrast(2) brightness(1.5) sepia(1);
+        }
+        
+        body.glitch-active #glitch-overlay {
+            display: block;
+            background: rgba(0,0,0,0.1);
+        }
+        
+        @keyframes rgb-shake {
+            0% { transform: translate(5px, 2px); filter: hue-rotate(0deg); }
+            10% { transform: translate(-5px, -5px); filter: hue-rotate(90deg); }
+            20% { transform: translate(-8px, 5px); filter: hue-rotate(180deg); }
+            30% { transform: translate(8px, -5px); filter: hue-rotate(270deg); }
+            40% { transform: translate(5px, 8px); filter: hue-rotate(0deg); }
+            50% { transform: translate(-5px, 5px); filter: hue-rotate(90deg); }
+            60% { transform: translate(-5px, -8px); filter: hue-rotate(180deg); }
+            70% { transform: translate(8px, 5px); filter: hue-rotate(270deg); }
+            80% { transform: translate(-8px, -5px); filter: hue-rotate(0deg); }
+            90% { transform: translate(5px, 5px); filter: hue-rotate(90deg); }
+            100% { transform: translate(0, 0); }
+        }
+
+        .scanlines {
+            width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.4));
+            background-size: 100% 4px;
+            position: absolute; top:0; left:0;
+        }
+
+        .crt-off-anim {
+            animation: turn-off 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            background: #000;
+            position: fixed; top:0; left:0; width:100vw; height:100vh; z-index: 9999;
+        }
+
+        @keyframes turn-off {
+            0% { transform: scale(1, 1.3) translate3d(0, 0, 0); filter: brightness(1); opacity: 1; }
+            60% { transform: scale(1, 0.001) translate3d(0, 0, 0); filter: brightness(10); }
+            100% { transform: scale(0, 0.001) translate3d(0, 0, 0); filter: brightness(50); opacity: 1; }
+        }
+        
+        #black-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9000;
+            display: none;
+        }
+
+        /* ===== 方案 A：贴在唱片上的轻量便签 ===== */
+        #memory-note {
+            position: fixed;
+            z-index: 4000;
+            display: none;
+            flex-direction: column;
+            min-width: 150px;
+            min-height: 96px;
+            border: 1px solid rgba(255,255,255,0.55);
+            background: rgba(58,132,156,0.58);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+            color: #fff;
+            cursor: grab;
+            touch-action: none;
+        }
+                #memory-drag-handle {
+            height: 26px;
+            flex-shrink: 0;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #memory-drag-handle::before {
+            content: '⠿ ⠿ ⠿';
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: rgba(255,255,255,0.28);
+        }
+        #memory-note.dragging #memory-drag-handle { cursor: grabbing; }
+        #memory-note.show { display: flex; animation: memoryNoteIn .34s cubic-bezier(.2,.8,.2,1); }
+        #memory-note.dragging { cursor: grabbing; }
+        #memory-note.invalid { border-color: #ff6464; }
+        @keyframes memoryNoteIn {
+            from { opacity: 0; transform: translateY(8px) scale(.94); }
+            to { opacity: 1; transform: none; }
+        }
+        .note-actions {
+            position: absolute;
+            top: -16px;
+            right: -16px;
+            display: flex;
+            gap: 8px;
+        }
+        .note-act {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(255,255,255,0.5);
+            background: rgba(10,10,10,0.82);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            color: #fff;
+            cursor: pointer;
+            transition: transform .15s, opacity .15s;
+        }
+        .note-act:hover { transform: scale(1.1); }
+        .note-act svg { width: 17px; height: 17px; }
+        .note-act.ok { border-color: rgba(120,230,180,0.7); color: #9fe9c4; }
+        .note-act.ok:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+        .note-author {
+            position: absolute;
+            top: 8px;
+            right: 11px;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.78);
+            font-family: 'Courier New', monospace;
+            pointer-events: none;
+        }
+        #memory-text-input {
+            flex: 1;
+            min-height: 60px;
+            margin: 0;
+            padding: 4px 13px 8px;
+            box-sizing: border-box;
+            border: none;
+            outline: none;
+            resize: none;
+            background: transparent;
+            color: #fff;
+            font: 14px/1.55 'Courier New', monospace;
+            cursor: text;
+            user-select: text;
+        }
+        #memory-text-input::placeholder { color: rgba(255,255,255,0.5); }
+        .note-rail {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 11px;
+            border-top: 1px solid rgba(255,255,255,0.22);
+            background: rgba(0,0,0,0.18);
+        }
+        .note-rail .swatches { display: flex; gap: 6px; }
+        .note-rail .rail-spacer { flex: 1; }
+        .memory-card-color {
+            width: 15px;
+            height: 15px;
+            padding: 0;
+            border: 1px solid rgba(255,255,255,0.45);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .memory-card-color.selected { box-shadow: 0 0 0 2px #fff; }
+        #memory-opacity-slider { width: 64px; accent-color: #fff; cursor: pointer; }
+        #memory-opacity-value { font-size: 10px; letter-spacing: 1px; color: rgba(255,255,255,0.68); }
+        .rail-btn {
+            width: 20px;
+            height: 20px;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border: none;
+            background: none;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+        }
+        .rail-btn svg { width: 16px; height: 16px; }
+        .rail-btn.on { color: #fff; }
+        .note-resize {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nwse-resize;
+            border-right: 2px solid rgba(255,255,255,0.55);
+            border-bottom: 2px solid rgba(255,255,255,0.55);
+        }
+        #memory-editor-status {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -26px;
+            text-align: center;
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: rgba(255,255,255,0.55);
+            pointer-events: none;
+        }
+        #memory-editor-status.bad { color: #ff8585; }
+        #memory-keepout {
+            position: fixed;
+            z-index: 3998;
+            display: none;
+            pointer-events: none;
+            border: 1px dashed rgba(255,255,255,0.25);
+            background: repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 8px, transparent 8px 16px);
+        }
+        #memory-keepout.show { display: block; }
+        .memory-profile-actions button {
+            border: 1px solid rgba(255,255,255,0.42);
+            border-radius: 3px;
+            background: rgba(0,0,0,0.62);
+            color: #fff;
+            font-size: 10px;
+            letter-spacing: 1px;
+            cursor: pointer;
+        }
+
+        .memory-profile-list {
+            max-height: 150px;
+            overflow-y: auto;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .memory-profile-item {
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            text-align: left;
+        }
+        .memory-profile-item strong { display: block; color: #fff; font-size: 11px; }
+        .memory-profile-item p {
+            margin: 5px 0 7px;
+            color: #aaa;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        .memory-profile-actions { display: flex; gap: 5px; }
+        .memory-profile-actions button { padding: 4px 7px; }
+        .memory-empty { padding: 10px; color: #666; text-align: center; font-size: 11px; }
+
+        @media (max-width: 900px) {
+            #memory-note { min-width: 132px; }
+            .note-rail { gap: 7px; padding: 7px 9px; }
+        }
+
+
+
